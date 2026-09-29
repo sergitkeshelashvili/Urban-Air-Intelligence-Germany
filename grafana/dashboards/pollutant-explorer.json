@@ -1,0 +1,284 @@
+{
+  "id": null,
+  "uid": "UbaPollutantExplorer",
+  "title": "Pollutant Explorer Germany",
+  "description": "Explore one pollutant at a time. The trend compares the ten highest station means as individual lines; the other charts reveal daily and city-level patterns.",
+  "tags": [
+    "air-quality",
+    "uba",
+    "germany"
+  ],
+  "timezone": "browser",
+  "schemaVersion": 30,
+  "version": 1,
+  "refresh": "5m",
+  "time": {
+    "from": "now-7d",
+    "to": "now"
+  },
+  "style": "dark",
+  "graphTooltip": 1,
+  "editable": true,
+  "liveNow": false,
+  "templating": {
+    "list": [
+      {
+        "name": "pollutant",
+        "type": "query",
+        "label": "Pollutant",
+        "datasource": {
+          "type": "postgres",
+          "uid": "TimescaleDB"
+        },
+        "query": "SELECT component FROM (SELECT DISTINCT component FROM measurements) AS pollutants ORDER BY CASE WHEN component = 'PM2.5' THEN 0 ELSE 1 END, component;",
+        "refresh": 1,
+        "includeAll": false,
+        "multi": false,
+        "current": {
+          "selected": true,
+          "text": "PM2.5",
+          "value": "PM2.5"
+        }
+      },
+      {
+        "name": "city",
+        "type": "query",
+        "label": "City",
+        "datasource": {
+          "type": "postgres",
+          "uid": "TimescaleDB"
+        },
+        "query": "SELECT DISTINCT city FROM stations ORDER BY city;",
+        "refresh": 1,
+        "includeAll": true,
+        "multi": true,
+        "allValue": null,
+        "current": {
+          "selected": true,
+          "text": "All",
+          "value": "$__all"
+        }
+      },
+      {
+        "name": "station",
+        "type": "query",
+        "label": "Station",
+        "datasource": {
+          "type": "postgres",
+          "uid": "TimescaleDB"
+        },
+        "query": "SELECT DISTINCT station_name FROM stations WHERE city IN ($city) ORDER BY station_name;",
+        "refresh": 1,
+        "includeAll": true,
+        "multi": true,
+        "allValue": null,
+        "current": {
+          "selected": true,
+          "text": "All",
+          "value": "$__all"
+        }
+      }
+    ]
+  },
+  "panels": [
+    {
+      "id": 101,
+      "title": "Top 10 station trends \u00b7 $pollutant",
+      "type": "timeseries",
+      "description": "Each line is one station, ranked by mean over the selected time range. CO is measured in mg/m\u00b3; other pollutants are generally reported in \u00b5g/m\u00b3.",
+      "datasource": {
+        "type": "postgres",
+        "uid": "TimescaleDB"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 0,
+        "w": 24,
+        "h": 11
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "postgres",
+            "uid": "TimescaleDB"
+          },
+          "format": "time_series",
+          "rawSql": "WITH top_stations AS (SELECT s.station_id, s.city, s.station_name, AVG(m.value) AS ranking_mean FROM measurements AS m JOIN stations AS s USING (station_id) WHERE m.component = '$pollutant' AND $__timeFilter(m.timestamp) AND s.city IN ($city) AND s.station_name IN ($station) GROUP BY s.station_id,s.city,s.station_name ORDER BY ranking_mean DESC LIMIT 10) SELECT m.timestamp AS time, ts.city || ' \u00b7 ' || ts.station_name AS metric, AVG(m.value)::double precision AS value FROM measurements AS m JOIN top_stations ts USING (station_id) WHERE m.component = '$pollutant' AND $__timeFilter(m.timestamp) GROUP BY m.timestamp, ts.city, ts.station_name ORDER BY time;",
+          "legendFormat": "{{metric}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "decimals": 2,
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "drawStyle": "line",
+            "lineInterpolation": "linear",
+            "lineWidth": 2,
+            "fillOpacity": 14,
+            "gradientMode": "opacity",
+            "showPoints": "auto",
+            "pointSize": 4,
+            "axisPlacement": "auto",
+            "axisLabel": "Pollutant units (see description)",
+            "axisColorMode": "text",
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "axisCenteredZero": false,
+            "spanNulls": false,
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "tooltip": {
+          "mode": "multi",
+          "sort": "none"
+        },
+        "legend": {
+          "showLegend": true,
+          "displayMode": "list",
+          "placement": "right",
+          "calcs": [
+            "lastNotNull"
+          ]
+        }
+      }
+    },
+    {
+      "id": 102,
+      "title": "Daily cycle \u00b7 mean by hour",
+      "type": "barchart",
+      "description": "Average reading by hour of day across the selected period. Values are not normalized; CO is in mg/m\u00b3, other pollutants generally \u00b5g/m\u00b3.",
+      "datasource": {
+        "type": "postgres",
+        "uid": "TimescaleDB"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 11,
+        "w": 12,
+        "h": 9
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "postgres",
+            "uid": "TimescaleDB"
+          },
+          "format": "table",
+          "rawSql": "SELECT TO_CHAR(EXTRACT(HOUR FROM m.timestamp), 'FM00') || ':00' AS hour, AVG(m.value)::double precision AS mean_value FROM measurements m JOIN stations s USING (station_id) WHERE m.component = '$pollutant' AND $__timeFilter(m.timestamp) AND s.city IN ($city) AND s.station_name IN ($station) GROUP BY EXTRACT(HOUR FROM m.timestamp) ORDER BY EXTRACT(HOUR FROM m.timestamp);"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "decimals": 2,
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "#FBBF24"
+          },
+          "custom": {
+            "axisLabel": "Concentration",
+            "axisPlacement": "auto"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "orientation": "horizontal",
+        "xField": "hour",
+        "xTickLabelRotation": 0,
+        "xTickLabelSpacing": 0,
+        "showValue": "always",
+        "stacking": "none",
+        "groupWidth": 0.68,
+        "barWidth": 0.9,
+        "barRadius": 3,
+        "fullHighlight": false,
+        "tooltip": {
+          "mode": "single",
+          "sort": "desc"
+        },
+        "legend": {
+          "showLegend": false,
+          "displayMode": "list",
+          "placement": "bottom",
+          "calcs": []
+        }
+      }
+    },
+    {
+      "id": 103,
+      "title": "Highest city means \u00b7 $pollutant",
+      "type": "barchart",
+      "description": "Top city-level means for the selected pollutant and time range; city/station filters apply. CO is in mg/m\u00b3, other pollutants generally \u00b5g/m\u00b3.",
+      "datasource": {
+        "type": "postgres",
+        "uid": "TimescaleDB"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 11,
+        "w": 12,
+        "h": 9
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "postgres",
+            "uid": "TimescaleDB"
+          },
+          "format": "table",
+          "rawSql": "SELECT s.city AS city, AVG(m.value)::double precision AS mean_value FROM measurements m JOIN stations s USING (station_id) WHERE m.component = '$pollutant' AND $__timeFilter(m.timestamp) AND s.city IN ($city) AND s.station_name IN ($station) GROUP BY s.city ORDER BY mean_value DESC LIMIT 10;"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "decimals": 2,
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "#A78BFA"
+          },
+          "custom": {
+            "axisLabel": "Concentration",
+            "axisPlacement": "auto"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "orientation": "horizontal",
+        "xField": "city",
+        "xTickLabelRotation": 0,
+        "xTickLabelSpacing": 0,
+        "showValue": "always",
+        "stacking": "none",
+        "groupWidth": 0.68,
+        "barWidth": 0.9,
+        "barRadius": 3,
+        "fullHighlight": false,
+        "tooltip": {
+          "mode": "single",
+          "sort": "desc"
+        },
+        "legend": {
+          "showLegend": false,
+          "displayMode": "list",
+          "placement": "bottom",
+          "calcs": []
+        }
+      }
+    }
+  ]
+}

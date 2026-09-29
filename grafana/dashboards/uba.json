@@ -1,0 +1,701 @@
+{
+  "title": "Urban Air Intelligence Germany",
+  "timezone": "browser",
+  "time": {
+    "from": "now-7d",
+    "to": "now"
+  },
+  "refresh": "5m",
+  "schemaVersion": 30,
+  "templating": {
+    "list": [
+      {
+        "name": "city",
+        "type": "query",
+        "datasource": {
+          "type": "postgres",
+          "uid": "TimescaleDB"
+        },
+        "query": "SELECT DISTINCT city FROM stations ORDER BY city;",
+        "refresh": 1,
+        "includeAll": true,
+        "multi": true
+      },
+      {
+        "name": "station",
+        "type": "query",
+        "datasource": {
+          "type": "postgres",
+          "uid": "TimescaleDB"
+        },
+        "query": "SELECT DISTINCT station_name FROM stations WHERE city IN ($city) ORDER BY station_name;",
+        "refresh": 1,
+        "includeAll": true,
+        "multi": true
+      },
+      {
+        "name": "pollutant",
+        "type": "query",
+        "datasource": {
+          "type": "postgres",
+          "uid": "TimescaleDB"
+        },
+        "query": "SELECT DISTINCT component FROM measurements ORDER BY component;",
+        "refresh": 1,
+        "includeAll": true,
+        "multi": true
+      }
+    ]
+  },
+  "panels": [
+    {
+      "title": "Last data refresh",
+      "type": "stat",
+      "datasource": {
+        "type": "postgres",
+        "uid": "TimescaleDB"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 0,
+        "w": 4,
+        "h": 4
+      },
+      "targets": [
+        {
+          "rawSql": "SELECT EXTRACT(EPOCH FROM MAX(ingested_at)) * 1000 AS latest_update FROM measurements;",
+          "format": "table",
+          "datasource": {
+            "type": "postgres",
+            "uid": "TimescaleDB"
+          },
+          "refId": "A"
+        }
+      ],
+      "id": 1,
+      "fieldConfig": {
+        "defaults": {
+          "unit": "dateTimeAsIso"
+        },
+        "overrides": []
+      }
+    },
+    {
+      "title": "Active stations \u00b7 24h",
+      "type": "stat",
+      "datasource": {
+        "type": "postgres",
+        "uid": "TimescaleDB"
+      },
+      "gridPos": {
+        "x": 4,
+        "y": 0,
+        "w": 4,
+        "h": 4
+      },
+      "targets": [
+        {
+          "rawSql": "SELECT COUNT(DISTINCT station_id) FROM measurements WHERE timestamp >= NOW() - INTERVAL '24 hours';",
+          "format": "table",
+          "datasource": {
+            "type": "postgres",
+            "uid": "TimescaleDB"
+          },
+          "refId": "A"
+        }
+      ],
+      "id": 2
+    },
+    {
+      "title": "Measurements in database",
+      "type": "stat",
+      "datasource": {
+        "type": "postgres",
+        "uid": "TimescaleDB"
+      },
+      "gridPos": {
+        "x": 8,
+        "y": 0,
+        "w": 4,
+        "h": 4
+      },
+      "targets": [
+        {
+          "rawSql": "SELECT COUNT(*) FROM measurements;",
+          "format": "table",
+          "datasource": {
+            "type": "postgres",
+            "uid": "TimescaleDB"
+          },
+          "refId": "A"
+        }
+      ],
+      "id": 3
+    },
+    {
+      "title": "NO2 \u00b7 Mean trend",
+      "type": "timeseries",
+      "datasource": {
+        "type": "postgres",
+        "uid": "TimescaleDB"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 4,
+        "w": 12,
+        "h": 8
+      },
+      "targets": [
+        {
+          "rawSql": "SELECT m.timestamp AS time, AVG(m.value)::double precision AS \"Mean concentration\" FROM measurements AS m JOIN stations AS s USING (station_id) WHERE m.component_id = '5' AND $__timeFilter(m.timestamp) AND s.city IN ($city) AND s.station_name IN ($station) GROUP BY m.timestamp ORDER BY time;",
+          "format": "time_series",
+          "datasource": {
+            "type": "postgres",
+            "uid": "TimescaleDB"
+          },
+          "refId": "A",
+          "legendFormat": "Mean across selected stations"
+        }
+      ],
+      "id": 4,
+      "description": "NO2 measurements; average across selected stations at each reported timestamp. UBA reporting is intermittent. \u00b5g/m\u00b3.",
+      "fieldConfig": {
+        "defaults": {
+          "unit": "suffix: \u00b5g/m\u00b3",
+          "decimals": 2,
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "#F43F5E"
+          },
+          "custom": {
+            "drawStyle": "line",
+            "lineInterpolation": "linear",
+            "lineWidth": 3,
+            "fillOpacity": 12,
+            "gradientMode": "opacity",
+            "showPoints": "auto",
+            "pointSize": 4,
+            "axisPlacement": "auto",
+            "axisLabel": "\u00b5g/m\u00b3",
+            "axisColorMode": "text",
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "axisCenteredZero": false,
+            "spanNulls": false,
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "tooltip": {
+          "mode": "multi",
+          "sort": "none"
+        },
+        "legend": {
+          "showLegend": true,
+          "displayMode": "list",
+          "placement": "bottom",
+          "calcs": [
+            "lastNotNull"
+          ]
+        }
+      }
+    },
+    {
+      "title": "PM10 \u00b7 Mean trend",
+      "type": "timeseries",
+      "datasource": {
+        "type": "postgres",
+        "uid": "TimescaleDB"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 4,
+        "w": 12,
+        "h": 8
+      },
+      "targets": [
+        {
+          "rawSql": "SELECT m.timestamp AS time, AVG(m.value)::double precision AS \"Mean concentration\" FROM measurements AS m JOIN stations AS s USING (station_id) WHERE m.component_id = '1' AND $__timeFilter(m.timestamp) AND s.city IN ($city) AND s.station_name IN ($station) GROUP BY m.timestamp ORDER BY time;",
+          "format": "time_series",
+          "datasource": {
+            "type": "postgres",
+            "uid": "TimescaleDB"
+          },
+          "refId": "A",
+          "legendFormat": "Mean across selected stations"
+        }
+      ],
+      "id": 5,
+      "description": "PM10 measurements; average across selected stations at each reported timestamp. UBA reporting is intermittent. \u00b5g/m\u00b3.",
+      "fieldConfig": {
+        "defaults": {
+          "unit": "suffix: \u00b5g/m\u00b3",
+          "decimals": 2,
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "#FBBF24"
+          },
+          "custom": {
+            "drawStyle": "line",
+            "lineInterpolation": "linear",
+            "lineWidth": 3,
+            "fillOpacity": 12,
+            "gradientMode": "opacity",
+            "showPoints": "auto",
+            "pointSize": 4,
+            "axisPlacement": "auto",
+            "axisLabel": "\u00b5g/m\u00b3",
+            "axisColorMode": "text",
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "axisCenteredZero": false,
+            "spanNulls": false,
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "tooltip": {
+          "mode": "multi",
+          "sort": "none"
+        },
+        "legend": {
+          "showLegend": true,
+          "displayMode": "list",
+          "placement": "bottom",
+          "calcs": [
+            "lastNotNull"
+          ]
+        }
+      }
+    },
+    {
+      "title": "PM2.5 \u00b7 Mean trend",
+      "type": "timeseries",
+      "datasource": {
+        "type": "postgres",
+        "uid": "TimescaleDB"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 12,
+        "w": 12,
+        "h": 8
+      },
+      "targets": [
+        {
+          "rawSql": "SELECT m.timestamp AS time, AVG(m.value)::double precision AS \"Mean concentration\" FROM measurements AS m JOIN stations AS s USING (station_id) WHERE m.component_id = '9' AND $__timeFilter(m.timestamp) AND s.city IN ($city) AND s.station_name IN ($station) GROUP BY m.timestamp ORDER BY time;",
+          "format": "time_series",
+          "datasource": {
+            "type": "postgres",
+            "uid": "TimescaleDB"
+          },
+          "refId": "A",
+          "legendFormat": "Mean across selected stations"
+        }
+      ],
+      "id": 6,
+      "description": "PM2.5 measurements; average across selected stations at each reported timestamp. UBA reporting is intermittent. \u00b5g/m\u00b3.",
+      "fieldConfig": {
+        "defaults": {
+          "unit": "suffix: \u00b5g/m\u00b3",
+          "decimals": 2,
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "#22D3EE"
+          },
+          "custom": {
+            "drawStyle": "line",
+            "lineInterpolation": "linear",
+            "lineWidth": 3,
+            "fillOpacity": 12,
+            "gradientMode": "opacity",
+            "showPoints": "auto",
+            "pointSize": 4,
+            "axisPlacement": "auto",
+            "axisLabel": "\u00b5g/m\u00b3",
+            "axisColorMode": "text",
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "axisCenteredZero": false,
+            "spanNulls": false,
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "tooltip": {
+          "mode": "multi",
+          "sort": "none"
+        },
+        "legend": {
+          "showLegend": true,
+          "displayMode": "list",
+          "placement": "bottom",
+          "calcs": [
+            "lastNotNull"
+          ]
+        }
+      }
+    },
+    {
+      "title": "O3 \u00b7 Mean trend",
+      "type": "timeseries",
+      "datasource": {
+        "type": "postgres",
+        "uid": "TimescaleDB"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 12,
+        "w": 12,
+        "h": 8
+      },
+      "targets": [
+        {
+          "rawSql": "SELECT m.timestamp AS time, AVG(m.value)::double precision AS \"Mean concentration\" FROM measurements AS m JOIN stations AS s USING (station_id) WHERE m.component_id = '3' AND $__timeFilter(m.timestamp) AND s.city IN ($city) AND s.station_name IN ($station) GROUP BY m.timestamp ORDER BY time;",
+          "format": "time_series",
+          "datasource": {
+            "type": "postgres",
+            "uid": "TimescaleDB"
+          },
+          "refId": "A",
+          "legendFormat": "Mean across selected stations"
+        }
+      ],
+      "id": 7,
+      "description": "O3 measurements; average across selected stations at each reported timestamp. UBA reporting is intermittent. \u00b5g/m\u00b3.",
+      "fieldConfig": {
+        "defaults": {
+          "unit": "suffix: \u00b5g/m\u00b3",
+          "decimals": 2,
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "#A78BFA"
+          },
+          "custom": {
+            "drawStyle": "line",
+            "lineInterpolation": "linear",
+            "lineWidth": 3,
+            "fillOpacity": 12,
+            "gradientMode": "opacity",
+            "showPoints": "auto",
+            "pointSize": 4,
+            "axisPlacement": "auto",
+            "axisLabel": "\u00b5g/m\u00b3",
+            "axisColorMode": "text",
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "axisCenteredZero": false,
+            "spanNulls": false,
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "tooltip": {
+          "mode": "multi",
+          "sort": "none"
+        },
+        "legend": {
+          "showLegend": true,
+          "displayMode": "list",
+          "placement": "bottom",
+          "calcs": [
+            "lastNotNull"
+          ]
+        }
+      }
+    },
+    {
+      "title": "SO2 \u00b7 Mean trend",
+      "type": "timeseries",
+      "datasource": {
+        "type": "postgres",
+        "uid": "TimescaleDB"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 20,
+        "w": 12,
+        "h": 8
+      },
+      "targets": [
+        {
+          "rawSql": "SELECT m.timestamp AS time, AVG(m.value)::double precision AS \"Mean concentration\" FROM measurements AS m JOIN stations AS s USING (station_id) WHERE m.component_id = '4' AND $__timeFilter(m.timestamp) AND s.city IN ($city) AND s.station_name IN ($station) GROUP BY m.timestamp ORDER BY time;",
+          "format": "time_series",
+          "datasource": {
+            "type": "postgres",
+            "uid": "TimescaleDB"
+          },
+          "refId": "A",
+          "legendFormat": "Mean across selected stations"
+        }
+      ],
+      "id": 8,
+      "description": "SO2 measurements; average across selected stations at each reported timestamp. UBA reporting is intermittent. \u00b5g/m\u00b3.",
+      "fieldConfig": {
+        "defaults": {
+          "unit": "suffix: \u00b5g/m\u00b3",
+          "decimals": 2,
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "#34D399"
+          },
+          "custom": {
+            "drawStyle": "line",
+            "lineInterpolation": "linear",
+            "lineWidth": 3,
+            "fillOpacity": 12,
+            "gradientMode": "opacity",
+            "showPoints": "auto",
+            "pointSize": 4,
+            "axisPlacement": "auto",
+            "axisLabel": "\u00b5g/m\u00b3",
+            "axisColorMode": "text",
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "axisCenteredZero": false,
+            "spanNulls": false,
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "tooltip": {
+          "mode": "multi",
+          "sort": "none"
+        },
+        "legend": {
+          "showLegend": true,
+          "displayMode": "list",
+          "placement": "bottom",
+          "calcs": [
+            "lastNotNull"
+          ]
+        }
+      }
+    },
+    {
+      "title": "CO \u00b7 Station lines",
+      "type": "timeseries",
+      "datasource": {
+        "type": "postgres",
+        "uid": "TimescaleDB"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 20,
+        "w": 12,
+        "h": 8
+      },
+      "targets": [
+        {
+          "rawSql": "SELECT m.timestamp AS time, s.station_name AS metric, AVG(m.value)::double precision AS value FROM measurements AS m JOIN stations AS s USING (station_id) WHERE m.component_id = '2' AND $__timeFilter(m.timestamp) AND s.city IN ($city) AND s.station_name IN ($station) GROUP BY m.timestamp, s.station_name ORDER BY time;",
+          "format": "time_series",
+          "datasource": {
+            "type": "postgres",
+            "uid": "TimescaleDB"
+          },
+          "refId": "A",
+          "legendFormat": "{{metric}}"
+        }
+      ],
+      "id": 9,
+      "description": "CO eight-hour mean per reporting station; 2 stations currently report. mg/m\u00b3.",
+      "fieldConfig": {
+        "defaults": {
+          "unit": "suffix: mg/m\u00b3",
+          "decimals": 2,
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "#FB923C"
+          },
+          "custom": {
+            "drawStyle": "line",
+            "lineInterpolation": "linear",
+            "lineWidth": 3,
+            "fillOpacity": 12,
+            "gradientMode": "opacity",
+            "showPoints": "always",
+            "pointSize": 4,
+            "axisPlacement": "auto",
+            "axisLabel": "mg/m\u00b3",
+            "axisColorMode": "text",
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "axisCenteredZero": false,
+            "spanNulls": false,
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "softMin": 0.2,
+          "softMax": 0.6
+        },
+        "overrides": []
+      },
+      "options": {
+        "tooltip": {
+          "mode": "multi",
+          "sort": "none"
+        },
+        "legend": {
+          "showLegend": true,
+          "displayMode": "list",
+          "placement": "bottom",
+          "calcs": [
+            "lastNotNull"
+          ]
+        }
+      }
+    },
+    {
+      "title": "Monitoring network \u00b7 Germany",
+      "type": "geomap",
+      "datasource": {
+        "type": "postgres",
+        "uid": "TimescaleDB"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 28,
+        "w": 12,
+        "h": 12
+      },
+      "targets": [
+        {
+          "rawSql": "SELECT station_name, latitude, longitude, MAX(value) as max_value FROM measurements JOIN stations USING (station_id) WHERE $__timeFilter(timestamp) GROUP BY station_name, latitude, longitude;",
+          "format": "table",
+          "datasource": {
+            "type": "postgres",
+            "uid": "TimescaleDB"
+          },
+          "refId": "A"
+        }
+      ],
+      "id": 10
+    },
+    {
+      "title": "Station freshness & coverage",
+      "type": "table",
+      "datasource": {
+        "type": "postgres",
+        "uid": "TimescaleDB"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 28,
+        "w": 12,
+        "h": 12
+      },
+      "targets": [
+        {
+          "rawSql": "SELECT station_name, component, MAX(timestamp) as latest_measurement, COUNT(timestamp) as total_observations FROM measurements JOIN stations USING (station_id) GROUP BY station_name, component ORDER BY latest_measurement ASC;",
+          "format": "table",
+          "datasource": {
+            "type": "postgres",
+            "uid": "TimescaleDB"
+          },
+          "refId": "A"
+        }
+      ],
+      "id": 11
+    },
+    {
+      "id": 12,
+      "title": "Station coverage by pollutant",
+      "type": "barchart",
+      "description": "Number of distinct stations reporting each pollutant in the selected time range.",
+      "datasource": {
+        "type": "postgres",
+        "uid": "TimescaleDB"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 40,
+        "w": 12,
+        "h": 10
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "postgres",
+            "uid": "TimescaleDB"
+          },
+          "format": "table",
+          "rawSql": "SELECT m.component AS pollutant, COUNT(DISTINCT m.station_id)::bigint AS reporting_stations FROM measurements AS m WHERE $__timeFilter(m.timestamp) GROUP BY m.component ORDER BY reporting_stations DESC;"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "decimals": 0,
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisLabel": "Reporting stations",
+            "axisPlacement": "auto"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "orientation": "horizontal",
+        "xField": "pollutant",
+        "xTickLabelRotation": 0,
+        "xTickLabelSpacing": 0,
+        "showValue": "always",
+        "stacking": "none",
+        "groupWidth": 0.7,
+        "barWidth": 0.94,
+        "barRadius": 3,
+        "fullHighlight": false,
+        "tooltip": {
+          "mode": "single",
+          "sort": "desc"
+        },
+        "legend": {
+          "showLegend": false,
+          "displayMode": "list",
+          "placement": "bottom",
+          "calcs": []
+        }
+      }
+    }
+  ],
+  "uid": "UrbanAirIntelligenceGermany",
+  "description": "A cinematic overview of Germany air-quality measurements from UBA. Use city/station filters and time range to explore the reported data.",
+  "style": "dark",
+  "graphTooltip": 1,
+  "tags": [
+    "overview",
+    "main",
+    "uba",
+    "germany"
+  ]
+}

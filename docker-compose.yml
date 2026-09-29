@@ -1,0 +1,134 @@
+version: '3.8'
+
+services:
+  timescaledb:
+    image: timescale/timescaledb:latest-pg15
+    container_name: uba_timescaledb
+    environment:
+      POSTGRES_USER: uba_user
+      POSTGRES_PASSWORD: uba_password
+      POSTGRES_DB: uba_air_quality
+    ports:
+      - "5432:5432"
+    volumes:
+      - timescaledb_data:/var/lib/postgresql/data
+      - ./database/init.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U uba_user -d uba_air_quality"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  airflow-postgres:
+    image: postgres:15
+    container_name: uba_airflow_metadata
+    environment:
+      POSTGRES_USER: airflow
+      POSTGRES_PASSWORD: airflow_password
+      POSTGRES_DB: airflow
+    volumes:
+      - airflow_db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U airflow -d airflow"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  airflow-init:
+    image: apache/airflow:2.10.1
+    container_name: uba_airflow_init
+    depends_on:
+      airflow-postgres:
+        condition: service_healthy
+    environment:
+      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow_password@airflow-postgres:5432/airflow
+      AIRFLOW__CORE__EXECUTOR: LocalExecutor
+    command: version
+    volumes:
+      - ./airflow/dags:/opt/airflow/dags
+      - ./src:/opt/airflow/src
+      - ./airflow/requirements.txt:/requirements.txt
+    entrypoint: >
+      bash -c "
+      pip install -r /requirements.txt &&
+      airflow db migrate &&
+      airflow users create --username admin --password admin --firstname Admin --lastname Admin --role Admin --email admin@example.com
+      "
+
+  airflow-webserver:
+    image: apache/airflow:2.10.1
+    container_name: uba_airflow_webserver
+    depends_on:
+      airflow-init:
+        condition: service_completed_successfully
+      timescaledb:
+        condition: service_healthy
+    environment:
+      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow_password@airflow-postgres:5432/airflow
+      AIRFLOW__CORE__EXECUTOR: LocalExecutor
+      AIRFLOW__CORE__LOAD_EXAMPLES: 'false'
+      UBA_DB_HOST: timescaledb
+      UBA_DB_PORT: 5432
+      UBA_DB_NAME: uba_air_quality
+      UBA_DB_USER: uba_user
+      UBA_DB_PASS: uba_password
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./airflow/dags:/opt/airflow/dags
+      - ./src:/opt/airflow/src
+      - ./airflow/requirements.txt:/requirements.txt
+      - airflow_shared_data:/opt/airflow/data
+    command: >
+      bash -c "pip install -r /requirements.txt && airflow webserver"
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "http://localhost:8080/health"]
+      interval: 10s
+      timeout: 10s
+      retries: 5
+
+  airflow-scheduler:
+    image: apache/airflow:2.10.1
+    container_name: uba_airflow_scheduler
+    depends_on:
+      airflow-init:
+        condition: service_completed_successfully
+      timescaledb:
+        condition: service_healthy
+    environment:
+      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow_password@airflow-postgres:5432/airflow
+      AIRFLOW__CORE__EXECUTOR: LocalExecutor
+      AIRFLOW__CORE__LOAD_EXAMPLES: 'false'
+      UBA_DB_HOST: timescaledb
+      UBA_DB_PORT: 5432
+      UBA_DB_NAME: uba_air_quality
+      UBA_DB_USER: uba_user
+      UBA_DB_PASS: uba_password
+    volumes:
+      - ./airflow/dags:/opt/airflow/dags
+      - ./src:/opt/airflow/src
+      - ./airflow/requirements.txt:/requirements.txt
+      - airflow_shared_data:/opt/airflow/data
+    command: >
+      bash -c "pip install -r /requirements.txt && airflow scheduler"
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: uba_grafana
+    depends_on:
+      timescaledb:
+        condition: service_healthy
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: admin_password
+      GF_INSTALL_PLUGINS: 
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./grafana/provisioning:/etc/grafana/provisioning
+      - ./grafana/dashboards:/var/lib/grafana/dashboards
+
+volumes:
+  timescaledb_data:
+  airflow_db_data:
+  airflow_shared_data:

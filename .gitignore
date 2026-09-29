@@ -1,0 +1,34 @@
+# Environments
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Pytest
+.pytest_cache/
+
+# VS Code / IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Data
+# Ignore downloaded json data to avoid polluting repo, except if you want to keep data/
+# data/
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
