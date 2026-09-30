@@ -1,7 +1,7 @@
 # Urban Air Intelligence — Germany
 
 ## Project Overview
-Urban Air Intelligence — Germany is a data pipeline that continuously collects, validates, transforms, and stores air quality measurements from the German Umweltbundesamt (UBA). The data is stored in a TimescaleDB instance and visualized using Grafana. The pipeline is orchestrated using Apache Airflow.
+Urban Air Intelligence Germany is a data pipeline that continuously collects, validates, transforms, and stores air quality measurements from the German Umweltbundesamt (UBA). The data is stored in a TimescaleDB instance and visualized using Grafana. The pipeline is orchestrated using Apache Airflow.
 
 ## Architecture Diagram
 ```mermaid
