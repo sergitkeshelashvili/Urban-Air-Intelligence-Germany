@@ -39,10 +39,9 @@ canonical `PM2.5` component label even though the API code is `PM2`.
 
 ## Grafana Dashboards
 
-Grafana provisions three dark-theme dashboards from `grafana/dashboards/`:
+Grafana provisions two dark-theme dashboards from `grafana/dashboards/`:
 
 * **Urban Air Intelligence Germany** — overview KPIs, six pollutant trends, station map, data freshness, and station coverage. Pollutant lines use distinct colors and labeled concentration units; CO is shown per reporting station because its current coverage is only two stations.
-* **Station Rankings · Germany** — six pollutant-specific Top 10 station mean charts. Each pollutant keeps its own unit and color; the CO and SO₂ panels state their smaller source coverage.
 * **Pollutant Explorer · Germany** — choose one pollutant and compare the ten highest-mean station trends, its average daily cycle by hour, and the highest city means. City/station and time filters apply across the dashboard.
 
 The overview and explorer default to the last seven days. UBA reports are intermittent, so charts show reported samples without inventing measurements between them. Most pollutants are reported in µg/m³; CO is reported in mg/m³. Do not compare their raw magnitudes across different pollutants.

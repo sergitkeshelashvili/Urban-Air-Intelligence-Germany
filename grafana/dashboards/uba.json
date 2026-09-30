@@ -81,7 +81,7 @@
       }
     },
     {
-      "title": "Active stations \u00b7 24h",
+      "title": "Active stations · 24h",
       "type": "stat",
       "datasource": {
         "type": "postgres",
@@ -133,7 +133,7 @@
       "id": 3
     },
     {
-      "title": "NO2 \u00b7 Mean trend",
+      "title": "NO2 · Mean trend",
       "type": "timeseries",
       "datasource": {
         "type": "postgres",
@@ -158,10 +158,10 @@
         }
       ],
       "id": 4,
-      "description": "NO2 measurements; average across selected stations at each reported timestamp. UBA reporting is intermittent. \u00b5g/m\u00b3.",
+      "description": "NO2 measurements; average across selected stations at each reported timestamp. UBA reporting is intermittent. µg/m³.",
       "fieldConfig": {
         "defaults": {
-          "unit": "suffix: \u00b5g/m\u00b3",
+          "unit": "suffix: µg/m³",
           "decimals": 2,
           "color": {
             "mode": "fixed",
@@ -176,7 +176,7 @@
             "showPoints": "auto",
             "pointSize": 4,
             "axisPlacement": "auto",
-            "axisLabel": "\u00b5g/m\u00b3",
+            "axisLabel": "µg/m³",
             "axisColorMode": "text",
             "scaleDistribution": {
               "type": "linear"
@@ -206,7 +206,7 @@
       }
     },
     {
-      "title": "PM10 \u00b7 Mean trend",
+      "title": "PM10 · Mean trend",
       "type": "timeseries",
       "datasource": {
         "type": "postgres",
@@ -231,10 +231,10 @@
         }
       ],
       "id": 5,
-      "description": "PM10 measurements; average across selected stations at each reported timestamp. UBA reporting is intermittent. \u00b5g/m\u00b3.",
+      "description": "PM10 measurements; average across selected stations at each reported timestamp. UBA reporting is intermittent. µg/m³.",
       "fieldConfig": {
         "defaults": {
-          "unit": "suffix: \u00b5g/m\u00b3",
+          "unit": "suffix: µg/m³",
           "decimals": 2,
           "color": {
             "mode": "fixed",
@@ -249,7 +249,7 @@
             "showPoints": "auto",
             "pointSize": 4,
             "axisPlacement": "auto",
-            "axisLabel": "\u00b5g/m\u00b3",
+            "axisLabel": "µg/m³",
             "axisColorMode": "text",
             "scaleDistribution": {
               "type": "linear"
@@ -279,7 +279,7 @@
       }
     },
     {
-      "title": "PM2.5 \u00b7 Mean trend",
+      "title": "PM2.5 · Mean trend",
       "type": "timeseries",
       "datasource": {
         "type": "postgres",
@@ -304,10 +304,10 @@
         }
       ],
       "id": 6,
-      "description": "PM2.5 measurements; average across selected stations at each reported timestamp. UBA reporting is intermittent. \u00b5g/m\u00b3.",
+      "description": "PM2.5 measurements; average across selected stations at each reported timestamp. UBA reporting is intermittent. µg/m³.",
       "fieldConfig": {
         "defaults": {
-          "unit": "suffix: \u00b5g/m\u00b3",
+          "unit": "suffix: µg/m³",
           "decimals": 2,
           "color": {
             "mode": "fixed",
@@ -322,7 +322,7 @@
             "showPoints": "auto",
             "pointSize": 4,
             "axisPlacement": "auto",
-            "axisLabel": "\u00b5g/m\u00b3",
+            "axisLabel": "µg/m³",
             "axisColorMode": "text",
             "scaleDistribution": {
               "type": "linear"
@@ -352,7 +352,7 @@
       }
     },
     {
-      "title": "O3 \u00b7 Mean trend",
+      "title": "O3 · Mean trend",
       "type": "timeseries",
       "datasource": {
         "type": "postgres",
@@ -377,10 +377,10 @@
         }
       ],
       "id": 7,
-      "description": "O3 measurements; average across selected stations at each reported timestamp. UBA reporting is intermittent. \u00b5g/m\u00b3.",
+      "description": "O3 measurements; average across selected stations at each reported timestamp. UBA reporting is intermittent. µg/m³.",
       "fieldConfig": {
         "defaults": {
-          "unit": "suffix: \u00b5g/m\u00b3",
+          "unit": "suffix: µg/m³",
           "decimals": 2,
           "color": {
             "mode": "fixed",
@@ -395,7 +395,7 @@
             "showPoints": "auto",
             "pointSize": 4,
             "axisPlacement": "auto",
-            "axisLabel": "\u00b5g/m\u00b3",
+            "axisLabel": "µg/m³",
             "axisColorMode": "text",
             "scaleDistribution": {
               "type": "linear"
@@ -425,80 +425,7 @@
       }
     },
     {
-      "title": "SO2 \u00b7 Mean trend",
-      "type": "timeseries",
-      "datasource": {
-        "type": "postgres",
-        "uid": "TimescaleDB"
-      },
-      "gridPos": {
-        "x": 0,
-        "y": 20,
-        "w": 12,
-        "h": 8
-      },
-      "targets": [
-        {
-          "rawSql": "SELECT m.timestamp AS time, AVG(m.value)::double precision AS \"Mean concentration\" FROM measurements AS m JOIN stations AS s USING (station_id) WHERE m.component_id = '4' AND $__timeFilter(m.timestamp) AND s.city IN ($city) AND s.station_name IN ($station) GROUP BY m.timestamp ORDER BY time;",
-          "format": "time_series",
-          "datasource": {
-            "type": "postgres",
-            "uid": "TimescaleDB"
-          },
-          "refId": "A",
-          "legendFormat": "Mean across selected stations"
-        }
-      ],
-      "id": 8,
-      "description": "SO2 measurements; average across selected stations at each reported timestamp. UBA reporting is intermittent. \u00b5g/m\u00b3.",
-      "fieldConfig": {
-        "defaults": {
-          "unit": "suffix: \u00b5g/m\u00b3",
-          "decimals": 2,
-          "color": {
-            "mode": "fixed",
-            "fixedColor": "#34D399"
-          },
-          "custom": {
-            "drawStyle": "line",
-            "lineInterpolation": "linear",
-            "lineWidth": 3,
-            "fillOpacity": 12,
-            "gradientMode": "opacity",
-            "showPoints": "auto",
-            "pointSize": 4,
-            "axisPlacement": "auto",
-            "axisLabel": "\u00b5g/m\u00b3",
-            "axisColorMode": "text",
-            "scaleDistribution": {
-              "type": "linear"
-            },
-            "axisCenteredZero": false,
-            "spanNulls": false,
-            "thresholdsStyle": {
-              "mode": "off"
-            }
-          }
-        },
-        "overrides": []
-      },
-      "options": {
-        "tooltip": {
-          "mode": "multi",
-          "sort": "none"
-        },
-        "legend": {
-          "showLegend": true,
-          "displayMode": "list",
-          "placement": "bottom",
-          "calcs": [
-            "lastNotNull"
-          ]
-        }
-      }
-    },
-    {
-      "title": "CO \u00b7 Station lines",
+      "title": "CO · Station lines",
       "type": "timeseries",
       "datasource": {
         "type": "postgres",
@@ -523,10 +450,10 @@
         }
       ],
       "id": 9,
-      "description": "CO eight-hour mean per reporting station; 2 stations currently report. mg/m\u00b3.",
+      "description": "CO eight-hour mean per reporting station; 2 stations currently report. mg/m³.",
       "fieldConfig": {
         "defaults": {
-          "unit": "suffix: mg/m\u00b3",
+          "unit": "suffix: mg/m³",
           "decimals": 2,
           "color": {
             "mode": "fixed",
@@ -541,7 +468,7 @@
             "showPoints": "always",
             "pointSize": 4,
             "axisPlacement": "auto",
-            "axisLabel": "mg/m\u00b3",
+            "axisLabel": "mg/m³",
             "axisColorMode": "text",
             "scaleDistribution": {
               "type": "linear"
@@ -573,7 +500,7 @@
       }
     },
     {
-      "title": "Monitoring network \u00b7 Germany",
+      "title": "Monitoring network · Germany",
       "type": "geomap",
       "datasource": {
         "type": "postgres",
