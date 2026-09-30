@@ -5,7 +5,7 @@ Urban Air Intelligence Germany is a data pipeline that continuously collects, va
 
 ## 🎥 Project Demo
 
-Watch the project demo: https://youtu.be/7FCTeecfUaU
+Watch the project demo: https://youtu.be/jnacVIc_iOE
 
 ## Architecture Diagram
 ```mermaid
